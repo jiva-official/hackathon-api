@@ -25,6 +25,7 @@ public class HackathonController {
     }
 
     @GetMapping("/problems")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<Problem>> getAllProblems() {
         return ResponseEntity.ok(hackathonService.getAllProblems());
     }
@@ -59,6 +60,7 @@ public class HackathonController {
     }
 
     @GetMapping("/problems/{problemId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Problem> getProblem(@PathVariable String problemId) {
         return ResponseEntity.ok(hackathonService.getProblem(problemId));
     }

@@ -16,4 +16,5 @@ public interface UserRepository extends MongoRepository<User, String> {
     boolean existsByUsername(String username);
     long countByTeamNameIsNotNull();
     List<User> findByAssignedProblemId(String problemId);
+    Optional<User> findFirstByUsername(String username);
 }

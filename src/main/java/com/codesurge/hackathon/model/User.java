@@ -68,7 +68,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return teamName;
+        return username;
     }
 
     @Override

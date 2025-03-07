@@ -19,41 +19,45 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/{userId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<User> getUserById(@PathVariable String userId) {
         return ResponseEntity.ok(userService.getUserById(userId));
     }
-
+    //ok
     @GetMapping("/team/{teamName}")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<User> getUserByTeamName(@PathVariable String teamName) {
         return ResponseEntity.ok(userService.getUserByTeamName(teamName));
     }
-
+    //not working
     @PutMapping("/{userId}")
+    @PreAuthorize("#userId == authentication.principal.id or hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<User> updateUser(@PathVariable String userId,
             @Valid @RequestBody User userDetails) {
         return ResponseEntity.ok(userService.updateUser(userId, userDetails));
     }
 
     @DeleteMapping("/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable String userId) {
         userService.deleteUser(userId);
         return ResponseEntity.ok().build();
     }
-
+    //ok
     @GetMapping("/profile")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<User> getCurrentUserProfile() {
         return ResponseEntity.ok(userService.getCurrentUserProfile());
     }
 
     @PostMapping("/{userId}/problem/{problemId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> assignProblem(@PathVariable String userId,
             @PathVariable String problemId) {
         userService.assignProblem(userId, problemId);
