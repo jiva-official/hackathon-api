@@ -10,8 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+
 public class AuthResponse {
     private String token;
     private String username;
     private String message;
+
+    public AuthResponse(final String username, final String message) {
+        this.username = username;
+        this.message = message;
+    }
 }

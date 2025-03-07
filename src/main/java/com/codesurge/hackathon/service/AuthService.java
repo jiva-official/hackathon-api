@@ -33,8 +33,8 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
 
-        String token = jwtTokenProvider.generateToken(user.getUsername());
-        return new AuthResponse(token, user.getUsername(), "Registration successful");
+//        String token = jwtTokenProvider.generateToken(user.getUsername());
+        return new AuthResponse(user.getUsername(), "Registration successful");
     }
 
     public AuthResponse loginUser(String username, String password) {
