@@ -1,5 +1,6 @@
 package com.codesurge.hackathon.service.impl;
 
+import com.codesurge.hackathon.dto.UserUpdateDTO;
 import com.codesurge.hackathon.model.User;
 import com.codesurge.hackathon.repository.UserRepository;
 import com.codesurge.hackathon.service.UserService;
@@ -33,16 +34,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getUserByTeamName(String teamName) {
-        return userRepository.findByTeamName(teamName)
+        return userRepository.findByTeamName(teamName).stream().findAny()
             .orElseThrow(() -> new RuntimeException("Team not found: " + teamName));
     }
 
     @Override
-    public User updateUser(String userId, User userDetails) {
+    public User updateUser(String userId, UserUpdateDTO userDetails) {
         User user = getUserById(userId);
         user.setTeamName(userDetails.getTeamName());
-        user.setEmail(userDetails.getEmail());
-        user.setUsername(userDetails.getUsername());
         return userRepository.save(user);
     }
 
@@ -81,8 +80,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void submitSolution(String teamId, String githubUrl, String hostedUrl) {
-        User user = getUserById(teamId);
+    public void submitSolution(String userId, String githubUrl, String hostedUrl) {
+        User user = getUserById(userId);
         user.setSubmissionUrl(githubUrl);
         user.setHostedUrl(hostedUrl);
         user.setSolutionSubmitted(true);

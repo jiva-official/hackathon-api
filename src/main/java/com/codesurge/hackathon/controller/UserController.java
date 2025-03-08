@@ -1,5 +1,6 @@
 package com.codesurge.hackathon.controller;
 
+import com.codesurge.hackathon.dto.UserUpdateDTO;
 import com.codesurge.hackathon.model.User;
 import com.codesurge.hackathon.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -37,10 +38,17 @@ public class UserController {
     }
     //not working
     @PutMapping("/{userId}")
-    @PreAuthorize("#userId == authentication.principal.id or hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN') and (#userId == principal.username or hasAuthority('ROLE_ADMIN'))")
     public ResponseEntity<User> updateUser(@PathVariable String userId,
-            @Valid @RequestBody User userDetails) {
-        return ResponseEntity.ok(userService.updateUser(userId, userDetails));
+            @Valid @RequestBody UserUpdateDTO userDetails) {
+        try {
+            User updatedUser = userService.updateUser(userId, userDetails);
+            return ResponseEntity.ok(updatedUser);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @DeleteMapping("/{userId}")

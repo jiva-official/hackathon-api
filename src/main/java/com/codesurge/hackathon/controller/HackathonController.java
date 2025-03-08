@@ -33,29 +33,32 @@ public class HackathonController {
     @PostMapping("/start")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> startHackathon(@RequestParam String hackathonName,
-            @RequestParam List<String> teamIds,
+            @RequestParam List<String> teamNames,
             @RequestParam Integer durationInHours) {
-        hackathonService.startHackathon(hackathonName, teamIds, durationInHours);
+        hackathonService.startHackathon(hackathonName, teamNames, durationInHours);
         return ResponseEntity.ok().build();
     }
-
-    @PostMapping("/submit/{teamId}")
-    public ResponseEntity<Void> submitSolution(@PathVariable String teamId,
+    
+    @PostMapping("/submit/{userId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Void> submitSolution(@PathVariable String userId,
             @RequestParam String githubUrl,
             @RequestParam(required = false) String hostedUrl) {
-        hackathonService.submitSolution(teamId, githubUrl, hostedUrl);
+        hackathonService.submitSolution(userId, githubUrl, hostedUrl);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/status")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Object> getHackathonStatus() {
         return ResponseEntity.ok(hackathonService.getHackathonStatus());
     }
 
     @PostMapping("/problems/{problemId}/select")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> selectProblem(@PathVariable String problemId,
-            @RequestParam String teamId) {
-        hackathonService.selectProblem(problemId, teamId);
+            @RequestParam String userId) {
+        hackathonService.selectProblem(problemId, userId);
         return ResponseEntity.ok().build();
     }
 

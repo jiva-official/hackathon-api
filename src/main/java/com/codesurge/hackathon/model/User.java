@@ -47,6 +47,8 @@ public class User implements UserDetails {
     @Indexed(unique = true)
     private String email;
 
+    private List<HackathonParticipation> hackathonParticipations = new ArrayList<>();
+
     private String assignedProblemId;
 
     private String submissionUrl;

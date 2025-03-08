@@ -10,11 +10,11 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends MongoRepository<User, String> {
     Optional<User> findByUsername(String username);
-    Optional<User> findByEmail(String email);
     Optional<User> findByTeamName(String teamName);
+    // Optional<List<User>> findByTeamNameList(String teamName);
+    List<User> findByTeamNameIn(List<String> teamNames);
     boolean existsByTeamName(String teamName);
     boolean existsByUsername(String username);
     long countByTeamNameIsNotNull();
     List<User> findByAssignedProblemId(String problemId);
-    Optional<User> findFirstByUsername(String username);
 }

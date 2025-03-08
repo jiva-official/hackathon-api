@@ -54,18 +54,21 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/swagger-ui/**",
+                                "/api-docs/**",
+                                "/api-docs.yaml",
                                 "/error"
                         ).permitAll()
 
                         // Admin endpoints
                         .requestMatchers(HttpMethod.GET, "/api/users").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/users/*/problem/*").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/hackathon/problems").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/hackathon/problems/*").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/hackathon/start").hasAuthority("ROLE_ADMIN")
 
                         // User endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/users/*/problem/*").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/users/team/*").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/users/profile").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/users/*").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
