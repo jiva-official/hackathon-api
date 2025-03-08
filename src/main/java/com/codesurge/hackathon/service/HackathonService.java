@@ -14,4 +14,5 @@ package com.codesurge.hackathon.service;
         Problem getProblem(String problemId);
         void deleteProblem(String problemId);
         List<HackathonDTO> getAllHackathons();
+        void closeHackathon(String hackathonId);
     }

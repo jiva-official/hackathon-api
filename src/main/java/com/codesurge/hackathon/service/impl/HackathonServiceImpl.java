@@ -147,7 +147,7 @@ public class HackathonServiceImpl implements HackathonService {
             throw new RuntimeException("A problem has already been selected for this hackathon");
         }
 
-        // Set the selected problem
+        // Set the selected problem ID
         activeParticipation.setSelectedProblem(problem);
         userRepository.save(user);
     }
@@ -211,5 +211,19 @@ public class HackathonServiceImpl implements HackathonService {
         });
 
         return new ArrayList<>(hackathonsMap.values());
+    }
+
+    @Override
+    public void closeHackathon(String hackathonId) {
+        List<User> allUsers = userRepository.findAll();
+
+        allUsers.forEach(user -> {
+            user.getHackathonParticipations().stream()
+                .filter(participation -> participation.getHackathonId().equals(hackathonId) && participation.isActive())
+                .forEach(participation -> {
+                    participation.setActive(false);
+                    userRepository.save(user);
+                });
+        });
     }
 }

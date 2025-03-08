@@ -1,9 +1,13 @@
 package com.codesurge.hackathon.service.impl;
 
 import com.codesurge.hackathon.dto.UserUpdateDTO;
+import com.codesurge.hackathon.model.HackathonParticipation;
+import com.codesurge.hackathon.model.Problem;
 import com.codesurge.hackathon.model.User;
+import com.codesurge.hackathon.repository.ProblemRepository;
 import com.codesurge.hackathon.repository.UserRepository;
 import com.codesurge.hackathon.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,9 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+
+    @Autowired
+    private ProblemRepository problemRepository;
 
     public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -58,9 +65,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void assignProblem(String userId, String problemId) {
+    public void assignProblem(String userId, String problemId, String hackathonId) {
         User user = getUserById(userId);
-        user.setAssignedProblemId(problemId);
+        Problem problem = problemRepository.findById(problemId)
+            .orElseThrow(() -> new RuntimeException("Problem not found with id: " + problemId));
+
+        HackathonParticipation participation = user.getHackathonParticipations().stream()
+            .filter(p -> p.getHackathonId().equals(hackathonId) && p.isActive())
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("No active hackathon found with id: " + hackathonId));
+
+        participation.setSelectedProblem(problem);
         userRepository.save(user);
     }
 

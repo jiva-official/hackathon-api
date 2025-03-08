@@ -39,7 +39,7 @@ public interface UserService {
     /**
      * Assign problem to user/team
      */
-    void assignProblem(String userId, String problemId);
+    void assignProblem(String userId, String problemId, String hackathonId);
 
     /**
      * Check if team name is available

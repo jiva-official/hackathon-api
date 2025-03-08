@@ -64,11 +64,11 @@ public class UserController {
         return ResponseEntity.ok(userService.getCurrentUserProfile());
     }
 
-    @PostMapping("/{userId}/problem/{problemId}")
+    @PostMapping("/{userId}/problem/{problemId}/{hackathonId}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> assignProblem(@PathVariable String userId,
-            @PathVariable String problemId) {
-        userService.assignProblem(userId, problemId);
+            @PathVariable String problemId, @PathVariable String hackathonId) {
+        userService.assignProblem(userId, problemId, hackathonId);
         return ResponseEntity.ok().build();
     }
 }

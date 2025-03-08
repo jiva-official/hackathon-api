@@ -61,10 +61,10 @@ public class HackathonController {
         return ResponseEntity.ok(hackathonService.getHackathonStatus());
     }
 
-    @PostMapping("/problems/{problemId}/select")
+    @PostMapping("/problems/{problemId}/{userId}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> selectProblem(@PathVariable String problemId,
-            @RequestParam String userId) {
+            @PathVariable String userId) {
         hackathonService.selectProblem(problemId, userId);
         return ResponseEntity.ok().build();
     }
@@ -79,6 +79,13 @@ public class HackathonController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteProblem(@PathVariable String problemId) {
         hackathonService.deleteProblem(problemId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/close/{hackathonId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> closeHackathon(@PathVariable String hackathonId) {
+        hackathonService.closeHackathon(hackathonId);
         return ResponseEntity.ok().build();
     }
 
