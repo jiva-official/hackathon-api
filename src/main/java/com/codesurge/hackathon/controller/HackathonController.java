@@ -1,5 +1,6 @@
 package com.codesurge.hackathon.controller;
 
+import com.codesurge.hackathon.dto.HackathonDTO;
 import com.codesurge.hackathon.model.Problem;
 import com.codesurge.hackathon.service.HackathonService;
 import jakarta.validation.Valid;
@@ -48,6 +49,12 @@ public class HackathonController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<List<HackathonDTO>> getAllHackathons() {
+         return ResponseEntity.ok(hackathonService.getAllHackathons());
+    }
+
     @GetMapping("/status")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Object> getHackathonStatus() {
@@ -74,4 +81,5 @@ public class HackathonController {
         hackathonService.deleteProblem(problemId);
         return ResponseEntity.ok().build();
     }
+
 }

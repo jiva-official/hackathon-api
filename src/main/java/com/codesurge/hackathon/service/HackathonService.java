@@ -1,5 +1,6 @@
 package com.codesurge.hackathon.service;
 
+    import com.codesurge.hackathon.dto.HackathonDTO;
     import com.codesurge.hackathon.model.Problem;
     import java.util.List;
 
@@ -12,4 +13,5 @@ package com.codesurge.hackathon.service;
         void selectProblem(String problemId, String teamId);
         Problem getProblem(String problemId);
         void deleteProblem(String problemId);
+        List<HackathonDTO> getAllHackathons();
     }
