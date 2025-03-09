@@ -8,8 +8,14 @@ import com.codesurge.hackathon.model.User;
 import com.codesurge.hackathon.model.Solution;
 import com.codesurge.hackathon.repository.ProblemRepository;
 import com.codesurge.hackathon.repository.UserRepository;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +23,8 @@ import java.util.Map;
 import java.util.HashMap;
 
 @Service
+@EnableCaching
+@EnableScheduling
 public class HackathonServiceImpl implements HackathonService {
 
     private final ProblemRepository problemRepository;
@@ -32,6 +40,7 @@ public class HackathonServiceImpl implements HackathonService {
         return problemRepository.save(problem);
     }
 
+    @Cacheable(value = "problems")
     @Override
     public List<Problem> getAllProblems() {
         return problemRepository.findAll();
@@ -39,16 +48,18 @@ public class HackathonServiceImpl implements HackathonService {
 
     @Override
     public void startHackathon(String hackathonName, List<String> teamNames, Integer durationInHours) {
-        LocalDateTime startTime = LocalDateTime.now();
-        LocalDateTime endTime = startTime.plusHours(durationInHours);
+        // Store times in UTC
+        ZonedDateTime utcNow = ZonedDateTime.now(ZoneId.of("UTC"));
+        ZonedDateTime utcEndTime = utcNow.plusHours(durationInHours);
         
         String hackathonId = UUID.randomUUID().toString();
         
         HackathonParticipation participation = new HackathonParticipation();
         participation.setHackathonId(hackathonId);
         participation.setHackathonName(hackathonName);
-        participation.setStartTime(startTime);
-        participation.setEndTime(endTime);
+        // Store UTC times in the database
+        participation.setStartTime(utcNow.toLocalDateTime());
+        participation.setEndTime(utcEndTime.toLocalDateTime());
         participation.setActive(true);
 
         // Find all users in the selected teams and update their documents
@@ -105,18 +116,38 @@ public class HackathonServiceImpl implements HackathonService {
     public Object getHackathonStatus() {
         List<User> allUsers = userRepository.findAll();
         Map<String, Object> status = new HashMap<>();
+        ZonedDateTime utcNow = ZonedDateTime.now(ZoneId.of("UTC"));
         
         allUsers.forEach(user -> {
             user.getHackathonParticipations().stream()
                 .filter(HackathonParticipation::isActive)
                 .forEach(participation -> {
-                    Map<String, Object> teamStatus = new HashMap<>();
-                    teamStatus.put("teamName", user.getTeamName());
-                    teamStatus.put("selectedProblem", participation.getSelectedProblem() != null ? 
-                        participation.getSelectedProblem().getTitle() : "Not selected");
-                    teamStatus.put("hasSolution", participation.getSolution() != null);
+                    // Convert UTC times to user's local timezone
+                    ZonedDateTime localStart = participation.getStartTime()
+                        .atZone(ZoneId.of("UTC"))
+                        .withZoneSameInstant(ZoneId.systemDefault());
+                        
+                    ZonedDateTime localEnd = participation.getEndTime()
+                        .atZone(ZoneId.of("UTC"))
+                        .withZoneSameInstant(ZoneId.systemDefault());
                     
-                    status.put(participation.getHackathonId(), teamStatus);
+                    if (utcNow.toLocalDateTime().isAfter(participation.getEndTime())) {
+                        participation.setActive(false);
+                        userRepository.save(user);
+                    } else {
+                        Map<String, Object> teamStatus = new HashMap<>();
+                        teamStatus.put("teamName", user.getTeamName());
+                        teamStatus.put("selectedProblem", participation.getSelectedProblem() != null ? 
+                            participation.getSelectedProblem().getTitle() : "Not selected");
+                        teamStatus.put("hasSolution", participation.getSolution() != null);
+                        // Return times in user's local timezone
+                        teamStatus.put("startTime", localStart.format(
+                            java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")));
+                        teamStatus.put("endTime", localEnd.format(
+                            java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")));
+                        
+                        status.put(participation.getHackathonId(), teamStatus);
+                    }
                 });
         });
         
@@ -152,6 +183,7 @@ public class HackathonServiceImpl implements HackathonService {
         userRepository.save(user);
     }
 
+    @Cacheable(value = "problem", key = "#problemId")
     @Override
     public Problem getProblem(String problemId) {
         return problemRepository.findById(problemId)
@@ -177,8 +209,17 @@ public class HackathonServiceImpl implements HackathonService {
                     HackathonDTO dto = new HackathonDTO();
                     dto.setHackathonId(hackathonId);
                     dto.setHackathonName(participation.getHackathonName());
-                    dto.setStartTime(participation.getStartTime());
-                    dto.setEndTime(participation.getEndTime());
+                    
+                    // Convert UTC times to local timezone
+                    ZonedDateTime localStart = participation.getStartTime()
+                        .atZone(ZoneId.of("UTC"))
+                        .withZoneSameInstant(ZoneId.systemDefault());
+                    ZonedDateTime localEnd = participation.getEndTime()
+                        .atZone(ZoneId.of("UTC"))
+                        .withZoneSameInstant(ZoneId.systemDefault());
+                    
+                    dto.setStartTime(localStart.toLocalDateTime());
+                    dto.setEndTime(localEnd.toLocalDateTime());
                     dto.setActive(participation.isActive());
                     dto.setTeams(new ArrayList<>());
                     return dto;
@@ -224,6 +265,30 @@ public class HackathonServiceImpl implements HackathonService {
                     participation.setActive(false);
                     userRepository.save(user);
                 });
+        });
+    }
+
+    @Scheduled(fixedRate = 60000) // Runs every minute
+    public void checkAndUpdateHackathonStatus() {
+        // Get current time in UTC
+        ZonedDateTime utcNow = ZonedDateTime.now(ZoneId.of("UTC"));
+        LocalDateTime now = utcNow.toLocalDateTime();
+        
+        List<User> allUsers = userRepository.findAll();
+        
+        allUsers.forEach(user -> {
+            boolean needsUpdate = false;
+            
+            for (HackathonParticipation participation : user.getHackathonParticipations()) {
+                if (participation.isActive() && now.isAfter(participation.getEndTime())) {
+                    participation.setActive(false);
+                    needsUpdate = true;
+                }
+            }
+            
+            if (needsUpdate) {
+                userRepository.save(user);
+            }
         });
     }
 }
