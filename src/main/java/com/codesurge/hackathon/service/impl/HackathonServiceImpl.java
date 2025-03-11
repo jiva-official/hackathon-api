@@ -8,14 +8,12 @@ import com.codesurge.hackathon.model.User;
 import com.codesurge.hackathon.model.Solution;
 import com.codesurge.hackathon.repository.ProblemRepository;
 import com.codesurge.hackathon.repository.UserRepository;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.EnableCaching;
+import org.bson.codecs.jsr310.LocalDateTimeCodec;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+
+import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +21,6 @@ import java.util.Map;
 import java.util.HashMap;
 
 @Service
-@EnableCaching
 @EnableScheduling
 public class HackathonServiceImpl implements HackathonService {
 
@@ -40,7 +37,7 @@ public class HackathonServiceImpl implements HackathonService {
         return problemRepository.save(problem);
     }
 
-    @Cacheable(value = "problems")
+
     @Override
     public List<Problem> getAllProblems() {
         return problemRepository.findAll();
@@ -48,21 +45,26 @@ public class HackathonServiceImpl implements HackathonService {
 
     @Override
     public void startHackathon(String hackathonName, List<String> teamNames, Integer durationInHours) {
-        // Store times in UTC
-        ZonedDateTime utcNow = ZonedDateTime.now(ZoneId.of("UTC"));
-        ZonedDateTime utcEndTime = utcNow.plusHours(durationInHours);
-        
+        // Get current time in UTC
+//        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
+        // Calculate end time by adding duration
+//        Instant endTime = now.plus(Duration.ofHours(durationInHours));
+        LocalDateTime endTime = now.plusHours(durationInHours);
         String hackathonId = UUID.randomUUID().toString();
-        
+
         HackathonParticipation participation = new HackathonParticipation();
         participation.setHackathonId(hackathonId);
         participation.setHackathonName(hackathonName);
-        // Store UTC times in the database
-        participation.setStartTime(utcNow.toLocalDateTime());
-        participation.setEndTime(utcEndTime.toLocalDateTime());
+
+        // Store times as UTC timestamps
+//        participation.setStartTime(LocalDateTime.ofInstant(now, ZoneOffset.UTC));
+//        participation.setEndTime(LocalDateTime.ofInstant(endTime, ZoneOffset.UTC));
+        participation.setStartTime(now);
+        participation.setEndTime(endTime);
         participation.setActive(true);
 
-        // Find all users in the selected teams and update their documents
+        // Find all users in the selected teams
         List<User> teamUsers = userRepository.findByTeamNameIn(teamNames);
         if (teamUsers.isEmpty()) {
             throw new RuntimeException("No users found for the selected teams");
@@ -70,8 +72,11 @@ public class HackathonServiceImpl implements HackathonService {
 
         teamUsers.forEach(user -> {
             // Deactivate any previous active hackathons
-            user.getHackathonParticipations().forEach(h -> h.setActive(false));
-            
+            user.getHackathonParticipations()
+                    .stream()
+                    .filter(HackathonParticipation::isActive)
+                    .forEach(h -> h.setActive(false));
+
             // Add new hackathon participation
             user.getHackathonParticipations().add(participation);
             userRepository.save(user);
@@ -107,6 +112,7 @@ public class HackathonServiceImpl implements HackathonService {
         solution.setSubmissionTime(now);
 
         activeParticipation.setSolution(solution);
+        activeParticipation.setActive(false);
         
         // Save updated user document
         userRepository.save(user);
@@ -183,7 +189,7 @@ public class HackathonServiceImpl implements HackathonService {
         userRepository.save(user);
     }
 
-    @Cacheable(value = "problem", key = "#problemId")
+
     @Override
     public Problem getProblem(String problemId) {
         return problemRepository.findById(problemId)
