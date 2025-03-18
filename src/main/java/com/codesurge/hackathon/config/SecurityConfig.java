@@ -57,7 +57,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/api-docs/**",
                                 "/api-docs.yaml",
-                                "/error"
+                                "/error",
+                                "/api/hackathon/problems"
                         ).permitAll()
 
                         // Admin endpoints

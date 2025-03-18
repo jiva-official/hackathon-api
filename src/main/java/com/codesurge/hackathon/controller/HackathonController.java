@@ -26,7 +26,7 @@ public class HackathonController {
     }
 
     @GetMapping("/problems")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+//    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<Problem>> getAllProblems() {
         return ResponseEntity.ok(hackathonService.getAllProblems());
     }
