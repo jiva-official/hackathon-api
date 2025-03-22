@@ -2,6 +2,7 @@ package com.codesurge.hackathon.service.impl;
 
 import com.codesurge.hackathon.dto.*;
 import com.codesurge.hackathon.service.HackathonService;
+import com.codesurge.hackathon.service.NotificationService;
 import com.codesurge.hackathon.model.Problem;
 import com.codesurge.hackathon.model.HackathonParticipation;
 import com.codesurge.hackathon.model.User;
@@ -14,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -26,10 +28,14 @@ public class HackathonServiceImpl implements HackathonService {
 
     private final ProblemRepository problemRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public HackathonServiceImpl(ProblemRepository problemRepository, UserRepository userRepository) {
+    public HackathonServiceImpl(ProblemRepository problemRepository, 
+                          UserRepository userRepository,
+                          NotificationService notificationService) {
         this.problemRepository = problemRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -45,21 +51,13 @@ public class HackathonServiceImpl implements HackathonService {
 
     @Override
     public void startHackathon(String hackathonName, List<String> teamNames, Integer durationInHours) {
-        // Get current time in UTC
-//        Instant now = Instant.now();
         LocalDateTime now = LocalDateTime.now();
-        // Calculate end time by adding duration
-//        Instant endTime = now.plus(Duration.ofHours(durationInHours));
         LocalDateTime endTime = now.plusHours(durationInHours);
         String hackathonId = UUID.randomUUID().toString();
 
         HackathonParticipation participation = new HackathonParticipation();
         participation.setHackathonId(hackathonId);
         participation.setHackathonName(hackathonName);
-
-        // Store times as UTC timestamps
-//        participation.setStartTime(LocalDateTime.ofInstant(now, ZoneOffset.UTC));
-//        participation.setEndTime(LocalDateTime.ofInstant(endTime, ZoneOffset.UTC));
         participation.setStartTime(now);
         participation.setEndTime(endTime);
         participation.setActive(true);
@@ -80,6 +78,20 @@ public class HackathonServiceImpl implements HackathonService {
             // Add new hackathon participation
             user.getHackathonParticipations().add(participation);
             userRepository.save(user);
+
+            // Send notification to each user
+            String formattedStartTime = now.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a"));
+            String formattedEndTime = endTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a"));
+            
+            notificationService.notifyHackathonStart(
+                user.getEmail(),
+                user.getUsername(),
+                hackathonName,
+                user.getTeamName(),
+                now,
+                endTime,
+                durationInHours
+            );
         });
     }
 
@@ -116,6 +128,16 @@ public class HackathonServiceImpl implements HackathonService {
         
         // Save updated user document
         userRepository.save(user);
+
+        // Send notification
+        notificationService.notifySolutionSubmitted(
+            user.getEmail(),
+            user.getUsername(),
+            activeParticipation.getHackathonName(),
+            githubUrl,
+            hostedUrl,
+            now
+        );
     }
 
     @Override
@@ -262,39 +284,47 @@ public class HackathonServiceImpl implements HackathonService {
 
     @Override
     public void closeHackathon(String hackathonId) {
-        List<User> allUsers = userRepository.findAll();
-
-        allUsers.forEach(user -> {
+        List<User> participants = userRepository.findByActiveHackathonId(hackathonId);
+        participants.forEach(user -> {
             user.getHackathonParticipations().stream()
                 .filter(participation -> participation.getHackathonId().equals(hackathonId) && participation.isActive())
                 .forEach(participation -> {
                     participation.setActive(false);
                     userRepository.save(user);
+
+                    notificationService.notifyHackathonEnded(
+                        user.getEmail(),
+                        user.getUsername(),
+                        participation.getHackathonName(),
+                        LocalDateTime.now(),
+                        "Admin Closure"
+                    );
                 });
         });
     }
 
-    @Scheduled(fixedRate = 60000) // Runs every minute
+    @Scheduled(fixedRate = 60000)
     public void checkAndUpdateHackathonStatus() {
-        // Get current time in UTC
         ZonedDateTime utcNow = ZonedDateTime.now(ZoneId.of("UTC"));
         LocalDateTime now = utcNow.toLocalDateTime();
         
-        List<User> allUsers = userRepository.findAll();
+        List<User> activeUsers = userRepository.findByActiveHackathon();
         
-        allUsers.forEach(user -> {
-            boolean needsUpdate = false;
-            
-            for (HackathonParticipation participation : user.getHackathonParticipations()) {
-                if (participation.isActive() && now.isAfter(participation.getEndTime())) {
+        activeUsers.forEach(user -> {
+            user.getHackathonParticipations().stream()
+                .filter(participation -> participation.isActive() && now.isAfter(participation.getEndTime()))
+                .forEach(participation -> {
                     participation.setActive(false);
-                    needsUpdate = true;
-                }
-            }
-            
-            if (needsUpdate) {
-                userRepository.save(user);
-            }
+                    userRepository.save(user);
+
+                    notificationService.notifyHackathonEnded(
+                        user.getEmail(),
+                        user.getUsername(),
+                        participation.getHackathonName(),
+                        participation.getEndTime(),
+                        "Time Limit Exceeded"
+                    );
+                });
         });
     }
 }

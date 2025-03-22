@@ -25,6 +25,9 @@ public class AuthService {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private NotificationService notificationService;
+
     public AuthResponse registerUser(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new RuntimeException("Username already exists");
@@ -33,6 +36,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
 
+        notificationService.notifyUserRegistration(user.getEmail(), user.getTeamName());
 //        String token = jwtTokenProvider.generateToken(user.getUsername());
         return new AuthResponse(user.getUsername(), "Registration successful");
     }

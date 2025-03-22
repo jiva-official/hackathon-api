@@ -2,6 +2,7 @@ package com.codesurge.hackathon.repository;
 
 import com.codesurge.hackathon.model.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,4 +18,11 @@ public interface UserRepository extends MongoRepository<User, String> {
     boolean existsByUsername(String username);
     long countByTeamNameIsNotNull();
     List<User> findByAssignedProblemId(String problemId);
+    // List<User> findByCurrentHackathonId(String hackathonId);
+
+    @Query("{ 'hackathonParticipations': { $elemMatch: { 'active': true } } }")
+    List<User> findByActiveHackathon();
+
+    @Query("{ 'hackathonParticipations': { $elemMatch: { 'hackathonId': ?0, 'active': true } } }")
+    List<User> findByActiveHackathonId(String hackathonId);
 }
