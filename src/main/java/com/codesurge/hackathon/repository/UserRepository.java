@@ -3,6 +3,7 @@ package com.codesurge.hackathon.repository;
 import com.codesurge.hackathon.model.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -35,4 +36,11 @@ public interface UserRepository extends MongoRepository<User, String> {
     List<User> findByActiveHackathonId(String hackathonId);
 
     Optional<User> findByEmail(String email);
+
+    @Query("SELECT COUNT(DISTINCT u.teamName) FROM User u " +
+       "JOIN u.hackathonParticipations hp " +
+       "WHERE hp.selectedProblem.id = :problemId " +
+       "AND hp.hackathonId = :hackathonId")
+long countTeamsWithProblem(@Param("problemId") String problemId, @Param("hackathonId") String hackathonId);
+
 }

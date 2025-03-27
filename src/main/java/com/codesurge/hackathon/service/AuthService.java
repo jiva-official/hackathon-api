@@ -1,11 +1,15 @@
 package com.codesurge.hackathon.service;
 
 import com.codesurge.hackathon.config.JwtTokenProvider;
+import com.codesurge.hackathon.constant.ErrorCodes;
 import com.codesurge.hackathon.dto.AuthResponse;
+import com.codesurge.hackathon.exception.AuthenticationException;
+import com.codesurge.hackathon.exception.UserException;
 import com.codesurge.hackathon.model.EmailVerificationToken;
 import com.codesurge.hackathon.model.User;
 import com.codesurge.hackathon.repository.EmailVerificationTokenRepository;
 import com.codesurge.hackathon.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -18,6 +22,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 public class AuthService {
 
@@ -64,24 +69,34 @@ public class AuthService {
     }
 
     public AuthResponse registerUser(User user) {
-        validateEmail(user.getEmail());
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Username already exists");
+        log.info("Starting user registration process for username: {}", user.getUsername());
+        try {
+            validateEmail(user.getEmail());
+            if (userRepository.existsByUsername(user.getUsername())) {
+                throw new AuthenticationException("Username already exists", ErrorCodes.AUTH_EMAIL_EXISTS);
+            }
+
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            user.setEmailVerified(false); // Set initial verification status
+            User savedUser = userRepository.save(user);
+
+            // Generate verification token
+            String token = generateVerificationToken();
+            EmailVerificationToken verificationToken = new EmailVerificationToken(savedUser, token);
+            tokenRepository.save(verificationToken);
+
+            // Send verification email
+            sendVerificationEmail(user.getEmail(), token);
+            log.info("User registration completed successfully for username: {}", user.getUsername());
+
+            return new AuthResponse(user.getUsername(), "Registration successful. Please check your email to verify your account.");
+        } catch (AuthenticationException e) {
+            log.error("Registration failed for username {}: {}", user.getUsername(), e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error during registration for username {}: {}", user.getUsername(), e.getMessage(), e);
+            throw new AuthenticationException("Registration failed: " + e.getMessage(), ErrorCodes.INTERNAL_ERROR);
         }
-
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setEmailVerified(false); // Set initial verification status
-        User savedUser = userRepository.save(user);
-
-        // Generate verification token
-        String token = generateVerificationToken();
-        EmailVerificationToken verificationToken = new EmailVerificationToken(savedUser, token);
-        tokenRepository.save(verificationToken);
-
-        // Send verification email
-        sendVerificationEmail(user.getEmail(), token);
-
-        return new AuthResponse(user.getUsername(), "Registration successful. Please check your email to verify your account.");
     }
 
     private String generateVerificationToken() {
@@ -100,14 +115,14 @@ public class AuthService {
 
     public AuthResponse verifyEmail(String token) {
         EmailVerificationToken verificationToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid verification token"));
+                .orElseThrow(() -> new UserException("Invalid verification token"));
 
         if (verificationToken.isUsed()) {
-            throw new RuntimeException("Token already used");
+            throw new UserException("Token already used");
         }
 
         if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token has expired");
+            throw new UserException("Token has expired");
         }
 
         User user = verificationToken.getUser();
@@ -122,14 +137,14 @@ public class AuthService {
 
     public AuthResponse loginUser(String username, String password) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserException("User not found"));
 
         if (!user.isEmailVerified()) {
-            throw new RuntimeException("Please verify your email before logging in");
+            throw new UserException("Please verify your email before logging in");
         }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+            throw new UserException("Invalid password");
         }
 
         String token = jwtTokenProvider.generateToken(username);
@@ -138,7 +153,7 @@ public class AuthService {
 
     public void initiatePasswordReset(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("No user found with this email address"));
+                .orElseThrow(() -> new UserException("No user found with this email address"));
 
         String token = generateVerificationToken();
         EmailVerificationToken resetToken = new EmailVerificationToken(user, token);
@@ -158,14 +173,14 @@ public class AuthService {
 
     public AuthResponse resetPassword(String token, String newPassword) {
         EmailVerificationToken resetToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid reset token"));
+                .orElseThrow(() -> new UserException("Invalid reset token"));
 
         if (resetToken.isUsed()) {
-            throw new RuntimeException("This reset link has already been used");
+            throw new UserException("This reset link has already been used");
         }
 
         if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("This reset link has expired");
+            throw new UserException("This reset link has expired");
         }
 
         User user = resetToken.getUser();
@@ -180,10 +195,10 @@ public class AuthService {
 
     public AuthResponse changePassword(String username, String currentPassword, String newPassword) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserException("User not found"));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Current password is incorrect");
+            throw new UserException("Current password is incorrect");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));

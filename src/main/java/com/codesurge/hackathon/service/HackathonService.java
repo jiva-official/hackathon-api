@@ -16,7 +16,7 @@ public interface HackathonService {
 
     Object getHackathonStatus();
 
-    void selectProblem(String problemId, String teamId);
+    void selectProblem(String problemId, String userId, String hackathonId);
 
     Problem getProblem(String problemId);
 

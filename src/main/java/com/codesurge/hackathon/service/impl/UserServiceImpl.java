@@ -1,6 +1,7 @@
 package com.codesurge.hackathon.service.impl;
 
 import com.codesurge.hackathon.dto.UserUpdateDTO;
+import com.codesurge.hackathon.exception.UserException;
 import com.codesurge.hackathon.model.HackathonParticipation;
 import com.codesurge.hackathon.model.Problem;
 import com.codesurge.hackathon.model.User;
@@ -36,13 +37,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(String userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserException("User not found with id: " + userId));
     }
 
     @Override
     public User getUserByTeamName(String teamName) {
         return userRepository.findByTeamName(teamName).stream().findAny()
-                .orElseThrow(() -> new RuntimeException("Team not found: " + teamName));
+                .orElseThrow(() -> new UserException("Team not found: " + teamName));
     }
 
     @Override
@@ -61,19 +62,19 @@ public class UserServiceImpl implements UserService {
     public User getCurrentUserProfile() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return userRepository.findByUsername(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
+                .orElseThrow(() -> new UserException("Current user not found"));
     }
 
     @Override
     public void assignProblem(String userId, String problemId, String hackathonId) {
         User user = getUserById(userId);
         Problem problem = problemRepository.findById(problemId)
-                .orElseThrow(() -> new RuntimeException("Problem not found with id: " + problemId));
+                .orElseThrow(() -> new UserException("Problem not found with id: " + problemId));
 
         HackathonParticipation participation = user.getHackathonParticipations().stream()
                 .filter(p -> p.getHackathonId().equals(hackathonId) && p.isActive())
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("No active hackathon found with id: " + hackathonId));
+                .orElseThrow(() -> new UserException("No active hackathon found with id: " + hackathonId));
 
         participation.setSelectedProblem(problem);
         userRepository.save(user);

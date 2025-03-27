@@ -22,9 +22,9 @@
 //     public void checkHackathonTimeAndNotify() {
 //         // Get all users who are currently participating in a hackathon
 //         List<User> activeParticipants = userRepository.findByCurrentHackathonNotNull();
-        
+
 //         LocalDateTime now = LocalDateTime.now();
-        
+
 //         activeParticipants.forEach(user -> {
 //             if (user.getCurrentHackathon() != null && user.getCurrentHackathon().getEndTime().isAfter(now)) {
 //                 LocalDateTime endTime = user.getCurrentHackathon().getEndTime();
@@ -33,9 +33,9 @@
 //                     user.getCurrentHackathon().getStartTime(), 
 //                     endTime
 //                 );
-                
+
 //                 double percentageComplete = (1 - timeLeft.toMinutes() / (double) totalDuration.toMinutes()) * 100;
-                
+
 //                 if (percentageComplete >= 80 && !user.isNotifiedForTimeRemaining()) {
 //                     notificationService.notifyTimeRemaining(
 //                         user.getEmail(),
@@ -43,7 +43,7 @@
 //                         user.getCurrentHackathon().getName(),
 //                         timeLeft.toMinutes()
 //                     );
-                    
+
 //                     // Update user to mark that they've been notified
 //                     user.setNotifiedForTimeRemaining(true);
 //                     userRepository.save(user);

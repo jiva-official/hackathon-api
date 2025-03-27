@@ -1,28 +1,42 @@
 package com.codesurge.hackathon.controller;
 
 import com.codesurge.hackathon.dto.HackathonDTO;
+import com.codesurge.hackathon.exception.ErrorResponse;
+import com.codesurge.hackathon.exception.HackathonException;
 import com.codesurge.hackathon.model.Problem;
 import com.codesurge.hackathon.service.HackathonService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/hackathon")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
+@Slf4j
 public class HackathonController {
 
     private final HackathonService hackathonService;
 
     @PostMapping("/problems")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Problem> addProblem(@Valid @RequestBody Problem problem) {
-        return ResponseEntity.ok(hackathonService.addProblem(problem));
+    public ResponseEntity<?> addProblem(@Valid @RequestBody Problem problem) {
+        log.info("Adding new problem: {}", problem.getTitle());
+        try {
+            Problem savedProblem = hackathonService.addProblem(problem);
+            log.info("Problem added successfully with ID: {}", savedProblem.getId());
+            return ResponseEntity.ok(savedProblem);
+        } catch (HackathonException e) {
+            log.error("Failed to add problem: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse(e.getErrorCode(), e.getMessage(), LocalDateTime.now()));
+        }
     }
 
     @GetMapping("/problems")
@@ -61,11 +75,12 @@ public class HackathonController {
         return ResponseEntity.ok(hackathonService.getHackathonStatus());
     }
 
-    @PostMapping("/problems/{problemId}/{userId}")
+    @PostMapping("/problems/{problemId}/{userId}/{hackathonId}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> selectProblem(@PathVariable String problemId,
-                                              @PathVariable String userId) {
-        hackathonService.selectProblem(problemId, userId);
+                                              @PathVariable String userId,
+                                              @PathVariable String hackathonId) {
+        hackathonService.selectProblem(problemId, userId, hackathonId);
         return ResponseEntity.ok().build();
     }
 

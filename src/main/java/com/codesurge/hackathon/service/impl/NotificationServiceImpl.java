@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -152,5 +153,27 @@ public class NotificationServiceImpl implements NotificationService {
 
         String htmlContent = processTemplate("email/solution-submitted", variables);
         sendEmail(email, "Solution Submitted - " + hackathonName, htmlContent);
+    }
+
+    @Override
+    public void notifyProblemSelection(String email, String username, String hackathonName, String problemTitle,
+            LocalDateTime endTime) {
+        // log.info("Sending problem selection notification to user: {}", username);
+        try {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("username", username);
+            variables.put("hackathonName", hackathonName);
+            variables.put("problemTitle", problemTitle);
+            variables.put("endTime", endTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")));
+            variables.put("timeRemaining", Duration.between(LocalDateTime.now(), endTime).toHours());
+            variables.put("actionUrl", appUrl + "/hackathon/problem");
+
+            String htmlContent = processTemplate("email/problem-selected", variables);
+            sendEmail(email, "Problem Selected - " + hackathonName, htmlContent);
+            // log.info("Problem selection notification sent successfully to: {}", email);
+        } catch (Exception e) {
+            // log.error("Failed to send problem selection notification to {}: {}", email, e.getMessage(), e);
+            throw new RuntimeException("Failed to send problem selection notification", e);
+        }
     }
 }
