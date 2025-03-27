@@ -43,29 +43,29 @@
     </style>
 </head>
 <body>
-    <div class="email-container">
-        <div class="header">
-            <h1>Hackathon Started!</h1>
-        </div>
-        <div class="content">
-            <h2>Hello <span th:text="${username}">User</span>!</h2>
-            <p>The hackathon <strong th:text="${hackathonName}">Hackathon</strong> has started!</p>
-            
-            <div class="details">
-                <h3>Important Details:</h3>
-                <p><strong>Team:</strong> <span th:text="${teamName}">Team</span></p>
-                <p><strong>Start Time:</strong> <span th:text="${startTime}">Start Time</span></p>
-                <p><strong>End Time:</strong> <span th:text="${endTime}">End Time</span></p>
-                <p><strong>Duration:</strong> <span th:text="${duration}">Duration</span> hours</p>
-            </div>
-
-            <p>Good luck with your project! Remember to select a problem and submit your solution before the deadline.</p>
-            
-            <a th:href="${actionUrl}" class="button">Go to Dashboard</a>
-        </div>
-        <div class="footer">
-            <p>© 2024 CodeSurge Hackathon Platform. All rights reserved.</p>
-        </div>
+<div class="email-container">
+    <div class="header">
+        <h1>Hackathon Started!</h1>
     </div>
+    <div class="content">
+        <h2>Hello <span th:text="${username}">User</span>!</h2>
+        <p>The hackathon <strong th:text="${hackathonName}">Hackathon</strong> has started!</p>
+
+        <div class="details">
+            <h3>Important Details:</h3>
+            <p><strong>Team:</strong> <span th:text="${teamName}">Team</span></p>
+            <p><strong>Start Time:</strong> <span th:text="${startTime}">Start Time</span></p>
+            <p><strong>End Time:</strong> <span th:text="${endTime}">End Time</span></p>
+            <p><strong>Duration:</strong> <span th:text="${duration}">Duration</span> hours</p>
+        </div>
+
+        <p>Good luck with your project! Remember to select a problem and submit your solution before the deadline.</p>
+
+        <a class="button" th:href="${actionUrl}">Go to Dashboard</a>
+    </div>
+    <div class="footer">
+        <p>© 2024 CodeSurge Hackathon Platform. All rights reserved.</p>
+    </div>
+</div>
 </body>
 </html>

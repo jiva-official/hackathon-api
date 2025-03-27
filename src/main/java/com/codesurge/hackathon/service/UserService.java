@@ -2,6 +2,7 @@ package com.codesurge.hackathon.service;
 
 import com.codesurge.hackathon.dto.UserUpdateDTO;
 import com.codesurge.hackathon.model.User;
+
 import java.util.List;
 
 public interface UserService {

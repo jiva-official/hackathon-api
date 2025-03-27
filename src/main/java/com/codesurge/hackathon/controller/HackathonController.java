@@ -34,17 +34,17 @@ public class HackathonController {
     @PostMapping("/start")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> startHackathon(@RequestParam String hackathonName,
-            @RequestParam List<String> teamNames,
-            @RequestParam Integer durationInHours) {
+                                               @RequestParam List<String> teamNames,
+                                               @RequestParam Integer durationInHours) {
         hackathonService.startHackathon(hackathonName, teamNames, durationInHours);
         return ResponseEntity.ok().build();
     }
-    
+
     @PostMapping("/submit/{userId}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> submitSolution(@PathVariable String userId,
-            @RequestParam String githubUrl,
-            @RequestParam(required = false) String hostedUrl) {
+                                               @RequestParam String githubUrl,
+                                               @RequestParam(required = false) String hostedUrl) {
         hackathonService.submitSolution(userId, githubUrl, hostedUrl);
         return ResponseEntity.ok().build();
     }
@@ -52,7 +52,7 @@ public class HackathonController {
     @GetMapping("/all")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<HackathonDTO>> getAllHackathons() {
-         return ResponseEntity.ok(hackathonService.getAllHackathons());
+        return ResponseEntity.ok(hackathonService.getAllHackathons());
     }
 
     @GetMapping("/status")
@@ -64,7 +64,7 @@ public class HackathonController {
     @PostMapping("/problems/{problemId}/{userId}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Void> selectProblem(@PathVariable String problemId,
-            @PathVariable String userId) {
+                                              @PathVariable String userId) {
         hackathonService.selectProblem(problemId, userId);
         return ResponseEntity.ok().build();
     }

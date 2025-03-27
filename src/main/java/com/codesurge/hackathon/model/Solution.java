@@ -1,6 +1,7 @@
 package com.codesurge.hackathon.model;
 
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data

@@ -43,26 +43,27 @@
     </style>
 </head>
 <body>
-    <div class="email-container">
-        <div class="header">
-            <h1>Solution Submitted Successfully</h1>
-        </div>
-        <div class="content">
-            <h2>Hello <span th:text="${username}">User</span>!</h2>
-            <p>Your solution for <strong th:text="${hackathonName}">Hackathon</strong> has been submitted successfully.</p>
-            
-            <div class="details">
-                <h3>Solution Details:</h3>
-                <p><strong>Submission Time:</strong> <span th:text="${submissionTime}">Time</span></p>
-                <p><strong>GitHub URL:</strong> <a th:href="${githubUrl}" th:text="${githubUrl}">GitHub URL</a></p>
-                <p th:if="${hostedUrl}"><strong>Hosted URL:</strong> <a th:href="${hostedUrl}" th:text="${hostedUrl}">Hosted URL</a></p>
-            </div>
-
-            <p>Thank you for your submission! The evaluation process will begin after the hackathon ends.</p>
-        </div>
-        <div class="footer">
-            <p>© 2024 CodeSurge Hackathon Platform. All rights reserved.</p>
-        </div>
+<div class="email-container">
+    <div class="header">
+        <h1>Solution Submitted Successfully</h1>
     </div>
+    <div class="content">
+        <h2>Hello <span th:text="${username}">User</span>!</h2>
+        <p>Your solution for <strong th:text="${hackathonName}">Hackathon</strong> has been submitted successfully.</p>
+
+        <div class="details">
+            <h3>Solution Details:</h3>
+            <p><strong>Submission Time:</strong> <span th:text="${submissionTime}">Time</span></p>
+            <p><strong>GitHub URL:</strong> <a th:href="${githubUrl}" th:text="${githubUrl}">GitHub URL</a></p>
+            <p th:if="${hostedUrl}"><strong>Hosted URL:</strong> <a th:href="${hostedUrl}" th:text="${hostedUrl}">Hosted
+                URL</a></p>
+        </div>
+
+        <p>Thank you for your submission! The evaluation process will begin after the hackathon ends.</p>
+    </div>
+    <div class="footer">
+        <p>© 2024 CodeSurge Hackathon Platform. All rights reserved.</p>
+    </div>
+</div>
 </body>
 </html>

@@ -1,6 +1,8 @@
 package com.codesurge.hackathon.service.impl;
 
 import com.codesurge.hackathon.service.NotificationService;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -10,13 +12,10 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +42,8 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    private String processTemplate(String template, Map<String, Object> variables) {
+    @Override
+    public String processTemplate(String template, Map<String, Object> variables) {
         Context context = new Context();
         variables.forEach(context::setVariable);
         return templateEngine.process(template, context);
@@ -63,9 +63,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void notifyUserRegistration(String email, String username) {
         String htmlContent = processTemplate("email/registration", Map.of(
-            "username", username,
-            "message", "Welcome to CodeSurge! Your registration was successful. You can now participate in upcoming hackathons.",
-            "actionUrl", appUrl + "/dashboard"
+                "username", username,
+                "message", "Welcome to CodeSurge! Your registration was successful. You can now participate in upcoming hackathons.",
+                "actionUrl", appUrl + "/dashboard"
         ));
         sendEmail(email, "Welcome to CodeSurge Hackathon Platform", htmlContent);
     }
@@ -73,10 +73,10 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void notifyHackathonAssignment(String email, String phone, String hackathonName, String teamName) {
         String htmlContent = processTemplate("email/registration", Map.of(
-            "username", "Participant",
-            "message", String.format("You have been assigned to team '%s' for the hackathon '%s'. Get ready to showcase your skills!", 
-                teamName, hackathonName),
-            "actionUrl", appUrl + "/hackathon/current"
+                "username", "Participant",
+                "message", String.format("You have been assigned to team '%s' for the hackathon '%s'. Get ready to showcase your skills!",
+                        teamName, hackathonName),
+                "actionUrl", appUrl + "/hackathon/current"
         ));
         sendEmail(email, "Hackathon Assignment - " + hackathonName, htmlContent);
 
@@ -88,10 +88,10 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void notifyTimeRemaining(String email, String phone, String hackathonName, long remainingMinutes) {
         String htmlContent = processTemplate("email/registration", Map.of(
-            "username", "Participant",
-            "message", String.format("⚠️ Alert: Only %d minutes remaining in %s! Please submit your solution before time runs out.", 
-                remainingMinutes, hackathonName),
-            "actionUrl", appUrl + "/hackathon/submit"
+                "username", "Participant",
+                "message", String.format("⚠️ Alert: Only %d minutes remaining in %s! Please submit your solution before time runs out.",
+                        remainingMinutes, hackathonName),
+                "actionUrl", appUrl + "/hackathon/submit"
         ));
         sendEmail(email, "Time Alert - " + hackathonName, htmlContent);
 
@@ -101,18 +101,18 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void notifyHackathonStart(String email, String username, String hackathonName, 
-                                String teamName, LocalDateTime startTime, LocalDateTime endTime, int duration) {
+    public void notifyHackathonStart(String email, String username, String hackathonName,
+                                     String teamName, LocalDateTime startTime, LocalDateTime endTime, int duration) {
         String htmlContent = processTemplate("email/startHackathon", Map.of(
-            "username", username,
-            "hackathonName", hackathonName,
-            "teamName", teamName,
-            "startTime", startTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")),
-            "endTime", endTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")),
-            "duration", duration,
-            "actionUrl", appUrl + "/hackathon/current"
+                "username", username,
+                "hackathonName", hackathonName,
+                "teamName", teamName,
+                "startTime", startTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")),
+                "endTime", endTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")),
+                "duration", duration,
+                "actionUrl", appUrl + "/hackathon/current"
         ));
-        
+
         sendEmail(email, "Hackathon Started - " + hackathonName, htmlContent);
 
         // if (phone != null) {
@@ -125,22 +125,22 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void notifyHackathonEnded(String email, String username, String hackathonName, 
-                                    LocalDateTime endTime, String reason) {
+    public void notifyHackathonEnded(String email, String username, String hackathonName,
+                                     LocalDateTime endTime, String reason) {
         String htmlContent = processTemplate("email/hackathon-ended", Map.of(
-            "username", username,
-            "hackathonName", hackathonName,
-            "endTime", endTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")),
-            "reason", reason,
-            "actionUrl", appUrl + "/hackathon/results"
+                "username", username,
+                "hackathonName", hackathonName,
+                "endTime", endTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")),
+                "reason", reason,
+                "actionUrl", appUrl + "/hackathon/results"
         ));
-        
+
         sendEmail(email, "Hackathon Ended - " + hackathonName, htmlContent);
     }
 
     @Override
     public void notifySolutionSubmitted(String email, String username, String hackathonName,
-                                      String githubUrl, String hostedUrl, LocalDateTime submissionTime) {
+                                        String githubUrl, String hostedUrl, LocalDateTime submissionTime) {
         Map<String, Object> variables = new HashMap<>();
         variables.put("username", username);
         variables.put("hackathonName", hackathonName);
@@ -149,7 +149,7 @@ public class NotificationServiceImpl implements NotificationService {
         if (hostedUrl != null) {
             variables.put("hostedUrl", hostedUrl);
         }
-        
+
         String htmlContent = processTemplate("email/solution-submitted", variables);
         sendEmail(email, "Solution Submitted - " + hackathonName, htmlContent);
     }

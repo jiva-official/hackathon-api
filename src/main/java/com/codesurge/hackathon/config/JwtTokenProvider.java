@@ -37,7 +37,6 @@ public class JwtTokenProvider {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-
         return claims.getSubject();
     }
 

@@ -2,7 +2,6 @@ package com.codesurge.hackathon.service;
 
 import com.codesurge.hackathon.model.User;
 import com.codesurge.hackathon.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
