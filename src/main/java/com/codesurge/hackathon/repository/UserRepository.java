@@ -19,7 +19,7 @@ public interface UserRepository extends MongoRepository<User, String> {
     long countByTeamNameIsNotNull();
     List<User> findByAssignedProblemId(String problemId);
     // List<User> findByCurrentHackathonId(String hackathonId);
-
+    boolean existsByEmail(String email);
     @Query("{ 'hackathonParticipations': { $elemMatch: { 'active': true } } }")
     List<User> findByActiveHackathon();
 
