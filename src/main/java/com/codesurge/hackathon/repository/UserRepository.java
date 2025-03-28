@@ -37,10 +37,10 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     Optional<User> findByEmail(String email);
 
-    @Query("SELECT COUNT(DISTINCT u.teamName) FROM User u " +
-       "JOIN u.hackathonParticipations hp " +
-       "WHERE hp.selectedProblem.id = :problemId " +
-       "AND hp.hackathonId = :hackathonId")
-long countTeamsWithProblem(@Param("problemId") String problemId, @Param("hackathonId") String hackathonId);
+    @Query(value = "{ 'hackathonParticipations': { $elemMatch: { 'hackathonId': ?1 } } }", count = true)
+    long countTeamsWithProblem(@Param("problemId") String problemId, @Param("hackathonId") String hackathonId);
+
+    @Query("{'hackathonParticipations': {$elemMatch: {scheduled: true}}}")
+    List<User> findByScheduledHackathons();
 
 }

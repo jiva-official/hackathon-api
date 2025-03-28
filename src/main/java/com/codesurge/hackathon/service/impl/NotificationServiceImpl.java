@@ -4,6 +4,9 @@ import com.codesurge.hackathon.service.NotificationService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -12,8 +15,11 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +27,9 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
+
+
+    Logger log = LoggerFactory.getLogger(NotificationServiceImpl.class);
 
     private final JavaMailSender emailSender;
     private final TemplateEngine templateEngine;
@@ -158,7 +167,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void notifyProblemSelection(String email, String username, String hackathonName, String problemTitle,
             LocalDateTime endTime) {
-        // log.info("Sending problem selection notification to user: {}", username);
+        log.info("Sending problem selection notification to user: {}", username);
         try {
             Map<String, Object> variables = new HashMap<>();
             variables.put("username", username);
@@ -170,10 +179,46 @@ public class NotificationServiceImpl implements NotificationService {
 
             String htmlContent = processTemplate("email/problem-selected", variables);
             sendEmail(email, "Problem Selected - " + hackathonName, htmlContent);
-            // log.info("Problem selection notification sent successfully to: {}", email);
+            log.info("Problem selection notification sent successfully to: {}", email);
         } catch (Exception e) {
-            // log.error("Failed to send problem selection notification to {}: {}", email, e.getMessage(), e);
+            log.error("Failed to send problem selection notification to {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Failed to send problem selection notification", e);
         }
+    }
+
+    @Override
+    public void notifyHackathonScheduled(String email, String username, String hackathonName, String teamName,
+            LocalDateTime startTime, LocalDateTime endTime, Integer durationInHours) {
+        log.info("Sending hackathon schedule notification to user: {}", username);
+        try {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("username", username);
+            variables.put("hackathonName", hackathonName);
+            variables.put("teamName", teamName);
+            variables.put("startTime", startTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")));
+            variables.put("endTime", endTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a")));
+            variables.put("duration", durationInHours);
+            variables.put("daysUntilStart", Duration.between(LocalDateTime.now(), startTime).toDays());
+            variables.put("actionUrl", appUrl + "/hackathon/upcoming");
+            variables.put("addToCalendarUrl", generateCalendarUrl(hackathonName, startTime, endTime));
+
+            String htmlContent = processTemplate("email/hackathon-scheduled", variables);
+            sendEmail(email, "Hackathon Scheduled - " + hackathonName, htmlContent);
+            log.info("Hackathon schedule notification sent successfully to: {}", email);
+        } catch (Exception e) {
+            log.error("Failed to send hackathon schedule notification to {}: {}", email, e.getMessage(), e);
+            throw new RuntimeException("Failed to send hackathon schedule notification", e);
+        }
+    }
+
+    private String generateCalendarUrl(String hackathonName, LocalDateTime startTime, LocalDateTime endTime) {
+        // Generate Google Calendar URL
+        String encodedTitle = URLEncoder.encode("CodeSurge Hackathon: " + hackathonName, StandardCharsets.UTF_8);
+        String encodedDetails = URLEncoder.encode("Get ready for the hackathon!\n\nJoin using: " + appUrl, StandardCharsets.UTF_8);
+        String startTimeStr = startTime.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss"));
+        String endTimeStr = endTime.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss"));
+        
+        return String.format("https://calendar.google.com/calendar/render?action=TEMPLATE&text=%s&details=%s&dates=%s/%s",
+                encodedTitle, encodedDetails, startTimeStr, endTimeStr);
     }
 }

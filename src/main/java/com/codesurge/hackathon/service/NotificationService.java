@@ -26,4 +26,7 @@ public interface NotificationService {
     String processTemplate(String template, Map<String, Object> variables);
     void notifyProblemSelection(String email, String username, String hackathonName, 
                           String problemTitle, LocalDateTime endTime);
+
+    void notifyHackathonScheduled(String email, String username, String hackathonName, String teamName,
+            LocalDateTime startTime, LocalDateTime endTime, Integer durationInHours);
 }

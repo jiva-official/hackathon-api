@@ -14,4 +14,5 @@ public class HackathonParticipation {
     private Solution solution;
     private Problem selectedProblem;  // Add this field
     private LocalDateTime problemSelectionTime;
+    private boolean scheduled;
 }

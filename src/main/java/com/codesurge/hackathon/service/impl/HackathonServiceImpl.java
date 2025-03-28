@@ -52,58 +52,115 @@ public class HackathonServiceImpl implements HackathonService {
         return problemRepository.findAll();
     }
 
+    // @Override
+    // public void startHackathon(String hackathonName, List<String> teamNames, Integer durationInHours) {
+    //     log.info("Starting hackathon: {} for teams: {}", hackathonName, teamNames);
+    //     try {
+    //         LocalDateTime now = LocalDateTime.now();
+    //         LocalDateTime endTime = now.plusHours(durationInHours);
+    //         String hackathonId = UUID.randomUUID().toString();
+
+    //         HackathonParticipation participation = new HackathonParticipation();
+    //         participation.setHackathonId(hackathonId);
+    //         participation.setHackathonName(hackathonName);
+    //         participation.setStartTime(now);
+    //         participation.setEndTime(endTime);
+    //         participation.setActive(true);
+
+    //         // Find all users in the selected teams
+    //         List<User> teamUsers = userRepository.findByTeamNameIn(teamNames);
+    //         if (teamUsers.isEmpty()) {
+    //             throw new HackathonServiceException("No users found for the selected teams", ErrorCodes.INVALID_TEAM);
+    //         }
+
+    //         teamUsers.forEach(user -> {
+    //             // Deactivate any previous active hackathons
+    //             user.getHackathonParticipations()
+    //                     .stream()
+    //                     .filter(HackathonParticipation::isActive)
+    //                     .forEach(h -> h.setActive(false));
+
+    //             // Add new hackathon participation
+    //             user.getHackathonParticipations().add(participation);
+    //             userRepository.save(user);
+
+    //             // Send notification to each user
+    //             String formattedStartTime = now.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a"));
+    //             String formattedEndTime = endTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a"));
+
+    //             notificationService.notifyHackathonStart(
+    //                     user.getEmail(),
+    //                     user.getUsername(),
+    //                     hackathonName,
+    //                     user.getTeamName(),
+    //                     now,
+    //                     endTime,
+    //                     durationInHours
+    //             );
+    //         });
+
+    //         log.info("Hackathon {} started successfully", hackathonId);
+    //     } catch (Exception e) {
+    //         log.error("Failed to start hackathon: {}", e.getMessage(), e);
+    //         throw new HackathonServiceException("Failed to start hackathon: " + e.getMessage(),
+    //                 ErrorCodes.INTERNAL_SERVER_ERROR);
+    //     }
+    // }
+
     @Override
-    public void startHackathon(String hackathonName, List<String> teamNames, Integer durationInHours) {
-        log.info("Starting hackathon: {} for teams: {}", hackathonName, teamNames);
+    public void startHackathon(String hackathonName, List<String> teamNames, Integer durationInHours, LocalDateTime startTime) {
+        log.info("Scheduling hackathon: {} for teams: {} to start at {}", hackathonName, teamNames, startTime);
         try {
+            // Validate start time
             LocalDateTime now = LocalDateTime.now();
-            LocalDateTime endTime = now.plusHours(durationInHours);
+            if (startTime.isBefore(now)) {
+                throw new HackathonServiceException("Start time cannot be in the past", 
+                    ErrorCodes.INVALID_START_TIME);
+            }
+
+            LocalDateTime endTime = startTime.plusHours(durationInHours);
             String hackathonId = UUID.randomUUID().toString();
 
             HackathonParticipation participation = new HackathonParticipation();
             participation.setHackathonId(hackathonId);
             participation.setHackathonName(hackathonName);
-            participation.setStartTime(now);
+            participation.setStartTime(startTime);
             participation.setEndTime(endTime);
-            participation.setActive(true);
+            participation.setActive(false); // Will be activated when start time arrives
+            participation.setScheduled(true);
 
             // Find all users in the selected teams
             List<User> teamUsers = userRepository.findByTeamNameIn(teamNames);
             if (teamUsers.isEmpty()) {
-                throw new HackathonServiceException("No users found for the selected teams", ErrorCodes.INVALID_TEAM);
+                throw new HackathonServiceException("No users found for the selected teams", 
+                    ErrorCodes.INVALID_TEAM);
             }
 
             teamUsers.forEach(user -> {
-                // Deactivate any previous active hackathons
-                user.getHackathonParticipations()
-                        .stream()
-                        .filter(HackathonParticipation::isActive)
-                        .forEach(h -> h.setActive(false));
-
                 // Add new hackathon participation
                 user.getHackathonParticipations().add(participation);
                 userRepository.save(user);
 
-                // Send notification to each user
-                String formattedStartTime = now.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a"));
+                // Send notification about scheduled hackathon
+                String formattedStartTime = startTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a"));
                 String formattedEndTime = endTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy, hh:mm a"));
 
-                notificationService.notifyHackathonStart(
-                        user.getEmail(),
-                        user.getUsername(),
-                        hackathonName,
-                        user.getTeamName(),
-                        now,
-                        endTime,
-                        durationInHours
+                notificationService.notifyHackathonScheduled(
+                    user.getEmail(),
+                    user.getUsername(),
+                    hackathonName,
+                    user.getTeamName(),
+                    startTime,
+                    endTime,
+                    durationInHours
                 );
             });
 
-            log.info("Hackathon {} started successfully", hackathonId);
+            log.info("Hackathon {} scheduled successfully to start at {}", hackathonId, startTime);
         } catch (Exception e) {
-            log.error("Failed to start hackathon: {}", e.getMessage(), e);
-            throw new HackathonServiceException("Failed to start hackathon: " + e.getMessage(),
-                    ErrorCodes.INTERNAL_SERVER_ERROR);
+            log.error("Failed to schedule hackathon: {}", e.getMessage(), e);
+            throw new HackathonServiceException("Failed to schedule hackathon: " + e.getMessage(),
+                ErrorCodes.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -212,58 +269,39 @@ public class HackathonServiceImpl implements HackathonService {
     public void selectProblem(String problemId, String userId, String hackathonId) {
         log.info("Selecting problem {} for user {}", problemId, userId);
         try {
-            // Validate problem exists
             Problem problem = problemRepository.findById(problemId)
                     .orElseThrow(() -> new HackathonServiceException("Problem not found", 
                         ErrorCodes.PROBLEM_NOT_FOUND));
 
-            // Validate user exists
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new HackathonServiceException("User not found", 
                         ErrorCodes.USER_NOT_FOUND));
 
-            // Find active hackathon participation
             HackathonParticipation activeParticipation = user.getHackathonParticipations().stream()
-                    .filter(HackathonParticipation::isActive)
+                    .filter(hp -> hp.getHackathonId().equals(hackathonId) && hp.isActive())
                     .findFirst()
-                    .orElseThrow(() -> new HackathonServiceException("No active hackathon found", 
+                    .orElseThrow(() -> new HackathonServiceException("No active hackathon found with ID: " + hackathonId, 
                         ErrorCodes.NO_ACTIVE_HACKATHON));
-
-            // Validate hackathon timing
-            LocalDateTime now = LocalDateTime.now();
-            if (now.isBefore(activeParticipation.getStartTime())) {
-                throw new HackathonServiceException("Hackathon has not started yet", 
-                    ErrorCodes.HACKATHON_NOT_STARTED);
-            }
-
-            if (now.isAfter(activeParticipation.getEndTime())) {
-                throw new HackathonServiceException("Hackathon has ended. Cannot select problem.", 
-                    ErrorCodes.HACKATHON_ENDED);
-            }
 
             // Check if problem is already selected
             if (activeParticipation.getSelectedProblem() != null) {
-                if (activeParticipation.getSelectedProblem().getId().equals(problemId)) {
-                    throw new HackathonServiceException("This problem is already selected", 
-                        ErrorCodes.PROBLEM_ALREADY_SELECTED);
-                } else {
-                    throw new HackathonServiceException("Another problem is already selected for this hackathon", 
-                        ErrorCodes.PROBLEM_ALREADY_SELECTED);
-                }
+                throw new HackathonServiceException("A problem is already selected for this hackathon", 
+                    ErrorCodes.PROBLEM_ALREADY_SELECTED);
             }
 
-            // Check if problem is available for selection
-            if (!isProblemAvailable(problem, activeParticipation.getHackathonId())) {
-                throw new HackathonServiceException("This problem is no longer available for selection", 
-                    ErrorCodes.PROBLEM_NOT_AVAILABLE);
-            }
+            // Check if problem is available
+            // long teamsWithProblem = userRepository.countTeamsWithProblem(problemId, hackathonId);
+            // if (teamsWithProblem >= problem.getMaxTeams()) {
+            //     throw new HackathonServiceException("This problem has reached maximum team limit", 
+            //         ErrorCodes.PROBLEM_NOT_AVAILABLE);
+            // }
 
             // Set the selected problem
             activeParticipation.setSelectedProblem(problem);
-            activeParticipation.setProblemSelectionTime(now);
+            activeParticipation.setProblemSelectionTime(LocalDateTime.now());
             userRepository.save(user);
 
-            // Notify user about problem selection
+            // Send notification
             notificationService.notifyProblemSelection(
                 user.getEmail(),
                 user.getUsername(),
@@ -272,8 +310,7 @@ public class HackathonServiceImpl implements HackathonService {
                 activeParticipation.getEndTime()
             );
 
-            log.info("Problem {} selected successfully for user {} in hackathon {}", 
-                problemId, userId, activeParticipation.getHackathonId());
+            log.info("Problem {} selected successfully for user {}", problemId, userId);
         } catch (HackathonServiceException e) {
             log.error("Failed to select problem: {}", e.getMessage());
             throw e;
@@ -403,5 +440,42 @@ public class HackathonServiceImpl implements HackathonService {
                         );
                     });
         });
+    }
+
+    @Scheduled(fixedRate = 60000) // Run every minute
+    public void activateScheduledHackathons() {
+        log.debug("Checking for hackathons to activate...");
+        LocalDateTime now = LocalDateTime.now();
+
+        List<User> users = userRepository.findByScheduledHackathons();
+        for (User user : users) {
+            user.getHackathonParticipations().stream()
+                .filter(h -> h.isScheduled() && !h.isActive() && h.getStartTime().isBefore(now))
+                .forEach(hackathon -> {
+                    // Deactivate any currently active hackathons
+                    user.getHackathonParticipations().stream()
+                        .filter(HackathonParticipation::isActive)
+                        .forEach(h -> h.setActive(false));
+
+                    // Activate the scheduled hackathon
+                    hackathon.setActive(true);
+                    hackathon.setScheduled(false);
+                    userRepository.save(user);
+
+                    notificationService.notifyHackathonStart(
+                        user.getEmail(),
+                        user.getUsername(),
+                        hackathon.getHackathonName(),
+                        user.getTeamName(),
+                        hackathon.getStartTime(),
+                        hackathon.getEndTime(),
+                        (int) java.time.Duration.between(hackathon.getStartTime(), 
+                            hackathon.getEndTime()).toHours()
+                    );
+
+                    log.info("Activated scheduled hackathon {} for user {}", 
+                        hackathon.getHackathonId(), user.getUsername());
+                });
+        }
     }
 }
